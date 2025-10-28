@@ -214,6 +214,79 @@ class TestDigitValidation(unittest.TestCase):
         wrong = (correct + 1) % 10
         self.assertTrue(MRTD.report_digit_mismatch(field, str(wrong)))
 
+#Additonal Tests
+
+class TestAdditionalMutationKills(unittest.TestCase):
+    """tests designed to kill survived mutants"""
+
+    def test_encode_mrz_strings_padding_and_length(self):
+        """Kills mutants around line 89–94 by checking proper line lengths and filler behavior."""
+        data = {
+            "document_type": "P",
+            "country_code": "UTO",
+            "last_name": "SMITH",
+            "first_name": "JOHN",
+            "middle_names": "DOE",
+            "passport_number": "A1234567",
+            "birth_date": "880101",
+            "sex": "M",
+            "expiration_date": "300101",
+            "personal_number": "1234567890"
+        }
+
+        line1, line2 = MRTD.encode_mrz_strings(data)
+        # MRZ lines must always be 44 characters
+        self.assertEqual(len(line1), 44)
+        self.assertEqual(len(line2), 44)
+        # Ensure filler < is used for missing characters
+        self.assertIn("<", line1)
+        self.assertIn("<", line2)
+
+    def test_encode_mrz_strings_handles_long_names(self):
+        """Kills mutants at lines 96–99 by ensuring truncation of long names."""
+        data = {
+            "document_type": "P",
+            "country_code": "UTO",
+            "last_name": "SMITHJOHNSONMILLER",
+            "first_name": "ALEXANDER",
+            "middle_names": "CHRISTOPHER",
+            "passport_number": "B9876543",
+            "birth_date": "990101",
+            "sex": "F",
+            "expiration_date": "270101",
+            "personal_number": "XYZ1234567"
+        }
+
+        line1, line2 = MRTD.encode_mrz_strings(data)
+        # Long names should be truncated, not exceed MRZ limits
+        self.assertLessEqual(len(line1), 44)
+        self.assertEqual(len(line2), 44)
+        # Ensure it still contains correct start (P<UTO) format
+        self.assertTrue(line1.startswith("P<UTO"))
+
+    def test_encode_mrz_strings_fills_with_filler_when_missing(self):
+        """Kills mutants near line 100–102 by ensuring filler characters are added when data is missing."""
+        data = {
+            "document_type": "P",
+            "country_code": "UTO",
+            "last_name": "LEE",
+            "first_name": "ANNA",
+            # Intentionally missing optional fields
+            "middle_names": "",
+            "passport_number": "",
+            "birth_date": "010101",
+            "sex": "F",
+            "expiration_date": "300101",
+            "personal_number": ""
+        }
+
+        line1, line2 = MRTD.encode_mrz_strings(data)
+        # Filler "<" should be used to pad missing data
+        self.assertIn("<", line1)
+        self.assertIn("<", line2)
+        # MRZ format still respected
+        self.assertEqual(len(line1), 44)
+        self.assertEqual(len(line2), 44)
 
 # Run All Tests
 
