@@ -129,7 +129,7 @@ def encode_mrz_strings(data: dict):
     return line1, line2
 
 def calculate_check_digit(field: str) -> int:
-    import luhn 
+    import luhn
 
     alphabet_dict = {chr(i + 87): i for i in range(10, 36)}
 
